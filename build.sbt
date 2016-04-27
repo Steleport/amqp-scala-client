@@ -2,7 +2,7 @@ name := "amqp-client"
 
 organization := "com.github.sstone"
  
-version := "1.6-SNAPSHOT"
+version := "2.0-SNAPSHOT"
  
 scalaVersion := "2.11.8"
 
