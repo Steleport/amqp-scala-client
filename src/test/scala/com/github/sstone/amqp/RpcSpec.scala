@@ -5,12 +5,9 @@ import org.junit.runner.RunWith
 import concurrent.{Await, Future}
 import concurrent.duration._
 import concurrent.ExecutionContext.Implicits.global
-import akka.actor.Props
 import akka.pattern.ask
 import com.rabbitmq.client.AMQP.BasicProperties
-import com.github.sstone.amqp.IProcessor
 import com.github.sstone.amqp.Amqp._
-import com.github.sstone.amqp.ProcessResult
 import com.github.sstone.amqp.Amqp.Publish
 import com.github.sstone.amqp.RpcClient.Response
 import com.github.sstone.amqp.RpcClient.Undelivered

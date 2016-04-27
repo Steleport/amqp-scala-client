@@ -1,7 +1,7 @@
 package com.github.sstone.amqp
 
 import Amqp._
-import akka.actor.{UnboundedStash, UnrestrictedStash, Props, ActorRef}
+import akka.actor.{UnboundedStash, Props, ActorRef}
 import com.rabbitmq.client.{Envelope, Channel, DefaultConsumer}
 import com.rabbitmq.client.AMQP.BasicProperties
 import akka.event.LoggingReceive

@@ -1,7 +1,7 @@
 package com.github.sstone.amqp.samples
 
 import akka.actor.ActorSystem
-import com.github.sstone.amqp.{ChannelOwner, ConnectionOwner, Amqp}
+import com.github.sstone.amqp.{ChannelOwner, ConnectionOwner}
 import com.github.sstone.amqp.Amqp._
 import com.rabbitmq.client.ConnectionFactory
 import com.github.sstone.amqp.Amqp.Publish
@@ -25,5 +25,5 @@ object Producer extends App {
 
   // give it some time before shutting everything down
   Thread.sleep(500)
-  system.shutdown()
+  system.terminate()
 }

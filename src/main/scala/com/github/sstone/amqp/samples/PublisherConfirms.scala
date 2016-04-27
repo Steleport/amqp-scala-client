@@ -4,12 +4,9 @@ import akka.actor.{Props, Actor, ActorSystem}
 import com.github.sstone.amqp.{ChannelOwner, ConnectionOwner, Amqp}
 import com.github.sstone.amqp.Amqp._
 import com.rabbitmq.client.ConnectionFactory
-import scala.concurrent.{Future, ExecutionContext}
 import scala.concurrent.duration._
 
 object PublisherConfirms extends App {
-  import ExecutionContext.Implicits.global
-
   implicit val system = ActorSystem("mySystem")
 
   // create an AMQP connection

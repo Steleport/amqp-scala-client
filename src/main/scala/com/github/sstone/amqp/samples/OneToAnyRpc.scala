@@ -1,7 +1,7 @@
 package com.github.sstone.amqp.samples
 
 import akka.pattern.ask
-import akka.actor.{Actor, Props, ActorSystem}
+import akka.actor.ActorSystem
 import com.github.sstone.amqp._
 import com.github.sstone.amqp.Amqp._
 import com.github.sstone.amqp.IProcessor
@@ -9,14 +9,12 @@ import com.github.sstone.amqp.RpcClient.Request
 import akka.util.Timeout
 import concurrent.duration._
 import concurrent.{ExecutionContext, Future}
-import util.{Failure, Success}
 import com.rabbitmq.client.ConnectionFactory
 import com.github.sstone.amqp.ProcessResult
 import com.github.sstone.amqp.Amqp.Publish
 import scala.util.Success
 import com.github.sstone.amqp.Amqp.ChannelParameters
 import scala.util.Failure
-import scala.Some
 import com.github.sstone.amqp.Amqp.QueueParameters
 import com.github.sstone.amqp.Amqp.Delivery
 
@@ -67,5 +65,5 @@ object OneToAnyRpc extends App {
   }
   // wait 10 seconds and shut down
   Thread.sleep(10000)
-  system.shutdown()
+  system.terminate()
 }

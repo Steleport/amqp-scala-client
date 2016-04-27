@@ -2,7 +2,7 @@ package com.github.sstone.amqp.samples
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import akka.actor.{Actor, ActorSystem}
+import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.util.Timeout
 import com.github.sstone.amqp.{ConnectionOwner, RpcClient}

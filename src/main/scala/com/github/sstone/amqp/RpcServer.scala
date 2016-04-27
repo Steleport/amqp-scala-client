@@ -3,7 +3,6 @@ package com.github.sstone.amqp
 import Amqp._
 import com.rabbitmq.client.AMQP.BasicProperties
 import com.rabbitmq.client.{Envelope, Channel}
-import concurrent.{ExecutionContext, Future}
 import util.{Failure, Success}
 import akka.actor.{ActorRef, Props}
 import akka.event.LoggingReceive

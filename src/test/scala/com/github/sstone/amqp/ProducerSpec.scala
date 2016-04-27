@@ -3,14 +3,11 @@ package com.github.sstone.amqp
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import akka.testkit.TestProbe
-import akka.actor.Props
 import concurrent.duration._
 import com.rabbitmq.client.AMQP.BasicProperties
 import com.github.sstone.amqp.Amqp._
 import com.github.sstone.amqp.Amqp.Publish
-import com.github.sstone.amqp.Amqp.ExchangeParameters
 import com.github.sstone.amqp.Amqp.Binding
-import com.github.sstone.amqp.Amqp.QueueParameters
 import com.github.sstone.amqp.Amqp.Delivery
 
 @RunWith(classOf[JUnitRunner])

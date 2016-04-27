@@ -5,7 +5,6 @@ import org.junit.runner.RunWith
 import akka.testkit.TestProbe
 import com.github.sstone.amqp.Amqp._
 import akka.actor.{Props, ActorLogging, ActorRef, Actor}
-import com.github.sstone.amqp.ConnectionOwner.Create
 import scala.concurrent.duration._
 import com.github.sstone.amqp.Amqp.Ack
 import com.github.sstone.amqp.Amqp.Publish
