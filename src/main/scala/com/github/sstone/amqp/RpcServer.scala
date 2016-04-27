@@ -11,41 +11,13 @@ import scala.concurrent.ExecutionContext
 
 object RpcServer {
 
-  /**
-   * represents the response to a RPC request
-   * @param value optional response message body; if None, nothing will be sent back ("fire and forget" pattern)
-   * @param properties optional response message properties
-   */
-  case class ProcessResult(value: Option[Array[Byte]], properties: Option[BasicProperties] = None)
-
-  /**
-   * generic processor trait
-   */
-  trait IProcessor {
-    /**
-     * process an incoming AMQP message
-     * @param delivery AMQP message
-     * @return a Future[ProcessResult] instance
-     */
-    def process(delivery: Delivery): Future[ProcessResult]
-
-    /**
-     * create a message that describes why processing a request failed. You would typically serialize the exception along with
-     * some context information. 
-     * @param delivery delivery which cause process() to throw an exception
-     * @param e exception that was thrown in process()
-     * @return a ProcessResult instance
-     */
-    def onFailure(delivery: Delivery, e: Throwable): ProcessResult
-  }
-
-  def props(processor: RpcServer.IProcessor, init: Seq[Request] = Seq.empty[Request], channelParams: Option[ChannelParameters] = None)(implicit ctx: ExecutionContext): Props =
+  def props(processor: IProcessor, init: Seq[Request] = Seq.empty[Request], channelParams: Option[ChannelParameters] = None)(implicit ctx: ExecutionContext): Props =
     Props(new RpcServer(processor, init, channelParams))
 
-  def props(queue: QueueParameters, exchange: ExchangeParameters, routingKey: String, proc: RpcServer.IProcessor, channelParams: ChannelParameters)(implicit ctx: ExecutionContext): Props =
+  def props(queue: QueueParameters, exchange: ExchangeParameters, routingKey: String, proc: IProcessor, channelParams: ChannelParameters)(implicit ctx: ExecutionContext): Props =
     props(processor = proc, init = List(AddBinding(Binding(exchange, queue, routingKey))), channelParams = Some(channelParams))
 
-  def props(queue: QueueParameters, exchange: ExchangeParameters, routingKey: String, proc: RpcServer.IProcessor)(implicit ctx: ExecutionContext): Props =
+  def props(queue: QueueParameters, exchange: ExchangeParameters, routingKey: String, proc: IProcessor)(implicit ctx: ExecutionContext): Props =
     props(processor = proc, init = List(AddBinding(Binding(exchange, queue, routingKey))))
 
 }
@@ -57,10 +29,10 @@ object RpcServer {
  * <li>passes the message bodies to a "processor"</li>
  * <li>sends back the result queue specified in the "replyTo" property</li>
  * </ul>
- * @param processor [[com.github.sstone.amqp.RpcServer.IProcessor]] implementation
+ * @param processor [[com.github.sstone.amqp.IProcessor]] implementation
  * @param channelParams optional channel parameters
  */
-class RpcServer(processor: RpcServer.IProcessor, init: Seq[Request] = Seq.empty[Request], channelParams: Option[ChannelParameters] = None)(implicit ctx: ExecutionContext = ExecutionContext.Implicits.global) extends Consumer(listener = None, autoack = false, init = init, channelParams = channelParams) {
+class RpcServer(processor: IProcessor, init: Seq[Request] = Seq.empty[Request], channelParams: Option[ChannelParameters] = None)(implicit ctx: ExecutionContext = ExecutionContext.Implicits.global) extends Consumer(listener = None, autoack = false, init = init, channelParams = channelParams) {
   import RpcServer._
 
   private def sendResponse(result: ProcessResult, properties: BasicProperties, channel: Channel) {
