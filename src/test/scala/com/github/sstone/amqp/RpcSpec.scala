@@ -8,9 +8,9 @@ import concurrent.ExecutionContext.Implicits.global
 import akka.actor.Props
 import akka.pattern.ask
 import com.rabbitmq.client.AMQP.BasicProperties
-import com.github.sstone.amqp.RpcServer._
+import com.github.sstone.amqp.IProcessor
 import com.github.sstone.amqp.Amqp._
-import com.github.sstone.amqp.RpcServer.ProcessResult
+import com.github.sstone.amqp.ProcessResult
 import com.github.sstone.amqp.Amqp.Publish
 import com.github.sstone.amqp.RpcClient.Response
 import com.github.sstone.amqp.RpcClient.Undelivered
@@ -27,7 +27,7 @@ class RpcSpec extends ChannelSpec {
       val exchange = ExchangeParameters(name = "amq.direct", exchangeType = "", passive = true)
       val queue = randomQueue
       val routingKey = randomKey
-      val proc = new RpcServer.IProcessor() {
+      val proc = new IProcessor() {
         def process(delivery: Delivery) = Future {
           println("processing")
           val s = new String(delivery.body)
@@ -77,7 +77,7 @@ class RpcSpec extends ChannelSpec {
       val exchange = ExchangeParameters(name = "amq.direct", exchangeType = "", passive = true)
       val queue = randomQueue
       val routingKey = randomKey
-      val proc = new RpcServer.IProcessor() {
+      val proc = new IProcessor() {
         def process(delivery: Delivery) = Future {
           // return the same body with the same properties
           ProcessResult(Some(delivery.body), Some(delivery.properties))
