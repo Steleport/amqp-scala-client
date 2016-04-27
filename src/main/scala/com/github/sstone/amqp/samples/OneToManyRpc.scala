@@ -4,14 +4,13 @@ import akka.pattern.ask
 import akka.actor.{Actor, Props, ActorSystem}
 import com.github.sstone.amqp._
 import com.github.sstone.amqp.Amqp._
-import com.github.sstone.amqp.RpcServer.{ProcessResult, IProcessor}
+import com.github.sstone.amqp.{ProcessResult, IProcessor}
 import com.github.sstone.amqp.RpcClient.Request
 import akka.util.Timeout
 import concurrent.{ExecutionContext, Future}
 import concurrent.duration._
 import util.{Failure, Success}
 import com.rabbitmq.client.ConnectionFactory
-import com.github.sstone.amqp.RpcServer.ProcessResult
 import com.github.sstone.amqp.Amqp.Publish
 import scala.util.Success
 import com.github.sstone.amqp.Amqp.ChannelParameters
