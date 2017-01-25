@@ -1,13 +1,3 @@
-package space.spacelift.amqp.samples
-
-import akka.actor.ActorSystem
-import space.spacelift.amqp.{ChannelOwner, ConnectionOwner}
-import space.spacelift.amqp.Amqp._
-import com.rabbitmq.client.ConnectionFactory
-import space.spacelift.amqp.Amqp.Publish
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration._
-
 object Producer extends App {
   implicit val system = ActorSystem("mySystem")
 

@@ -1,4 +1,4 @@
-package space.spacelift.amqp.samples
+package samples
 
 import akka.actor.{ActorRef, Actor, Props, ActorSystem}
 import space.spacelift.amqp.Amqp.{AddStatusListener, QueueParameters, DeclareQueue}

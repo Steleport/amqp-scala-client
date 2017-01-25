@@ -1,23 +1,3 @@
-package space.spacelift.amqp.samples
-
-import akka.pattern.ask
-import akka.actor.ActorSystem
-import space.spacelift.amqp._
-import space.spacelift.amqp.Amqp._
-import space.spacelift.amqp.IProcessor
-import space.spacelift.amqp.RpcClient.Request
-import akka.util.Timeout
-import concurrent.duration._
-import concurrent.{ExecutionContext, Future}
-import com.rabbitmq.client.ConnectionFactory
-import space.spacelift.amqp.ProcessResult
-import space.spacelift.amqp.Amqp.Publish
-import scala.util.Success
-import space.spacelift.amqp.Amqp.ChannelParameters
-import scala.util.Failure
-import space.spacelift.amqp.Amqp.QueueParameters
-import space.spacelift.amqp.Amqp.Delivery
-
 object OneToAnyRpc extends App {
   import ExecutionContext.Implicits.global
 

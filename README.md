@@ -2,7 +2,27 @@
 
 Note: This project is undergoing heavy development as it pulls away from the fork of sstone/amqp-client. Unlike the corresponding break of akka-mq-proxies, we will retain its status as a direct fork until further notice.
 
-Also, this README will change to reflect the new repo shortly
+Also, this README will change to reflect the new repo shortly.
+
+## Why The Break?
+
+The original amqp-client is pretty stable, but also hasn't seen updates in almost a year now. I will attempt to address issues from the original project's tracker where applicable. The project name has also been slightly adjusted to accomodate for the fact that the RabbitMQ AMQP client library has the same output name, when project and Scala version are omitted. Given that this project (for the time being, this may change) uses said library, that only further aids the confusion.
+
+I also am rearranging the project somewhat, moving out sample code from the actual library, and moving entire classes out of this library and into the Akka-MQ-Proxies fork, where reasonable. This is due to the need for further abstraction as the Akka-MQ-Proxies fork will support more than just AMQP, and certain classes emerge from that change more relevant to the MQ proxies library. Understandably, these changes are divergent enough from the original intent of the projects this and the sister project are based on, such that it warranted the major version increment, plus renames.
+
+## What Specifically Will Change?
+
+* All RPC code (RPCServer/RPCClient/IProducer) will move to Akka-MQ-Proxies
+* A base interface project will be created to accompany this one in anticipation of its use case in Akka-MQ-Proxies 
+
+## What Won't Change?
+
+* License, and original copyright attribution, as Fabrice Drouin's (sstone) hard work will still be at the heart of this project to a healthy degree. Were this a complete rewrite, this wouldn't have been a fork in the first place.
+* Expected behavior of the Consumer, ChannelOwner and ConnectionOwner classes, and their supporting case classes in the Amqp object.
+
+The remainder of the old amqp-client is preserved below until a final 2.0 release.
+
+* * *
 
 Simple [AMQP](http://www.amqp.org/) client in Scala/Akka based on the [RabbitMQ](http://www.rabbitmq.com/) java client.
 

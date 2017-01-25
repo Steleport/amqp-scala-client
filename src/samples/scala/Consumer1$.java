@@ -1,12 +1,4 @@
-package space.spacelift.amqp.samples
-
-import akka.actor.{Actor, Props, ActorSystem}
-import space.spacelift.amqp.{ConnectionOwner, Amqp, Consumer}
-import space.spacelift.amqp.Amqp._
-import com.rabbitmq.client.ConnectionFactory
-import scala.concurrent.duration._
-
-object Consumer3 extends App {
+object Consumer1 extends App {
   implicit val system = ActorSystem("mySystem")
 
   // create an AMQP connection
@@ -25,19 +17,27 @@ object Consumer3 extends App {
   }))
 
   // create a consumer that will route incoming AMQP messages to our listener
-  val queueParams = QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true)
-  val consumer = ConnectionOwner.createChildActor(conn, Consumer.props(Some(listener)))
+  // it starts with an empty list of queues to consume from
+  val consumer = ConnectionOwner.createChildActor(conn, Consumer.props(listener, channelParams = None, autoack = false))
 
   // wait till everyone is actually connected to the broker
   Amqp.waitForConnection(system, consumer).await()
 
   // create a queue, bind it to a routing key and consume from it
-  // here we wrap our requests inside a Record message, so will be replayed if the connection to
-  // the broker is lost and restored
-  consumer ! Record(AddBinding(Binding(StandardExchanges.amqDirect, queueParams, "my_key")))
+  // here we don't wrap our requests inside a Record message, so they won't replayed when if the connection to
+  // the broker is lost: queue and binding will be gone
+
+  // create a queue
+  val queueParams = QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true)
+  consumer ! DeclareQueue(queueParams)
+  // bind it
+  consumer ! QueueBind(queue = "my_queue", exchange = "amq.direct", routing_key = "my_key")
+  // tell our consumer to consume from it
+  consumer ! AddQueue(QueueParameters(name = "my_queue", passive = false))
 
   // run the Producer sample now and see what happens
   println("press enter...")
+
   System.in.read()
   system.shutdown()
 }

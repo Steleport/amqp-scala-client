@@ -1,14 +1,3 @@
-package space.spacelift.amqp.samples
-
-import akka.actor._
-import space.spacelift.amqp.Amqp._
-import space.spacelift.amqp.ConnectionOwner.Create
-import space.spacelift.amqp.{Amqp, ChannelOwner, Consumer, ConnectionOwner}
-import com.rabbitmq.client.ConnectionFactory
-import java.util.concurrent.TimeUnit
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-
 /**
  * AMQP consumer that switches between multiple queues
  */

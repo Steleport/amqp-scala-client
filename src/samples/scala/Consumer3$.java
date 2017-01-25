@@ -1,12 +1,4 @@
-package space.spacelift.amqp.samples
-
-import akka.actor.{Actor, Props, ActorSystem}
-import space.spacelift.amqp.{ConnectionOwner, Amqp, Consumer}
-import space.spacelift.amqp.Amqp._
-import com.rabbitmq.client.ConnectionFactory
-import scala.concurrent.duration._
-
-object Consumer2 extends App {
+object Consumer3 extends App {
   implicit val system = ActorSystem("mySystem")
 
   // create an AMQP connection
@@ -26,16 +18,15 @@ object Consumer2 extends App {
 
   // create a consumer that will route incoming AMQP messages to our listener
   val queueParams = QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true)
-
-  // we initialize our consumer with an AddBinding request: the queue and the binding will be recreated if the connection
-  // to the broker is lost and restored
-  val consumer = ConnectionOwner.createChildActor(conn, Consumer.props(
-    listener = Some(listener),
-    init = List(AddBinding(Binding(StandardExchanges.amqDirect, queueParams, "my_key")))
-  ), name = Some("consumer"))
+  val consumer = ConnectionOwner.createChildActor(conn, Consumer.props(Some(listener)))
 
   // wait till everyone is actually connected to the broker
   Amqp.waitForConnection(system, consumer).await()
+
+  // create a queue, bind it to a routing key and consume from it
+  // here we wrap our requests inside a Record message, so will be replayed if the connection to
+  // the broker is lost and restored
+  consumer ! Record(AddBinding(Binding(StandardExchanges.amqDirect, queueParams, "my_key")))
 
   // run the Producer sample now and see what happens
   println("press enter...")

@@ -1,18 +1,3 @@
-package space.spacelift.amqp.samples
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
-import space.spacelift.amqp.{ConnectionOwner, RpcClient}
-import space.spacelift.amqp.RpcClient.Request
-import space.spacelift.amqp.Amqp.Publish
-import com.rabbitmq.client.ConnectionFactory
-
-/**
- * start with mvn exec:java -Dexec.mainClass=space.spacelift.amqp.samples.BasicRpcClient -Dexec.classpathScope="compile"
- */
 object BasicRpcClient extends App {
   import ExecutionContext.Implicits.global
 
