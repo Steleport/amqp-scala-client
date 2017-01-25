@@ -1,5 +1,7 @@
 # Simple Scala AMQP client
 
+[![Build Status](https://travis-ci.org/Spacelift/amqp-scala-client.svg?branch=develop)](https://travis-ci.org/Spacelift/amqp-scala-client)
+
 Note: This project is undergoing heavy development as it pulls away from the fork of sstone/amqp-client. Unlike the corresponding break of akka-mq-proxies, we will retain its status as a direct fork until further notice.
 
 Also, this README will change to reflect the new repo shortly.
