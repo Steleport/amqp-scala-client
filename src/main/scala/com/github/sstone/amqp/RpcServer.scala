@@ -32,7 +32,6 @@ object RpcServer {
  * @param channelParams optional channel parameters
  */
 class RpcServer(processor: IProcessor, init: Seq[Request] = Seq.empty[Request], channelParams: Option[ChannelParameters] = None)(implicit ctx: ExecutionContext = ExecutionContext.Implicits.global) extends Consumer(listener = None, autoack = false, init = init, channelParams = channelParams) {
-  import RpcServer._
 
   private def sendResponse(result: ProcessResult, properties: BasicProperties, channel: Channel) {
     result match {
