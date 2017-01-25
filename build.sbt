@@ -1,6 +1,6 @@
-name := "amqp-client"
+name := "amqp-scala-client"
 
-organization := "com.github.sstone"
+organization := "space.spacelift"
  
 version := "2.0-SNAPSHOT"
  

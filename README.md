@@ -2,6 +2,8 @@
 
 Note: This project is undergoing heavy development as it pulls away from the fork of sstone/amqp-client. Unlike the corresponding break of akka-mq-proxies, we will retain its status as a direct fork until further notice.
 
+Also, this README will change to reflect the new repo shortly
+
 Simple [AMQP](http://www.amqp.org/) client in Scala/Akka based on the [RabbitMQ](http://www.rabbitmq.com/) java client.
 
 [![Build Status](https://travis-ci.org/sstone/amqp-client.png?branch=scala2.10)](https://travis-ci.org/sstone/amqp-client)
