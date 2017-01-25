@@ -1,5 +1,7 @@
 # Simple Scala AMQP client
 
+Note: This project is undergoing heavy development as it pulls away from the fork of sstone/amqp-client. Unlike the corresponding break of akka-mq-proxies, we will retain its status as a direct fork until further notice.
+
 Simple [AMQP](http://www.amqp.org/) client in Scala/Akka based on the [RabbitMQ](http://www.rabbitmq.com/) java client.
 
 [![Build Status](https://travis-ci.org/sstone/amqp-client.png?branch=scala2.10)](https://travis-ci.org/sstone/amqp-client)
@@ -138,7 +140,7 @@ again they will send a new AMQP channel to each of their ChannelOwner children.
 
 Likewise, if the channel owned by a ChannelOwner is shut down because of an error it will request a new one from its parent.
 
-In this case you might want to "replay" some of the messages that were sent to the ChannelOnwer actor before it lost
+In this case you might want to "replay" some of the messages that were sent to the ChannelOwner actor before it lost
 its channel, like queue declarations and bindings.
 
 For this, you have 2 options:
