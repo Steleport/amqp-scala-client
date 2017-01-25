@@ -1,21 +1,33 @@
 package com.github.sstone.amqp.samples
 
 import akka.pattern.ask
-import akka.actor.{Actor, Props, ActorSystem}
-import com.github.sstone.amqp.{RpcClient, Amqp, RabbitMQConnection}
+import akka.actor.ActorSystem
+import com.github.sstone.amqp._
 import com.github.sstone.amqp.Amqp._
-import com.github.sstone.amqp.RpcServer.{ProcessResult, IProcessor}
+import com.github.sstone.amqp.IProcessor
 import com.github.sstone.amqp.RpcClient.Request
-import akka.util.duration._
 import akka.util.Timeout
-import akka.dispatch.Future
+import concurrent.duration._
+import concurrent.{ExecutionContext, Future}
+import com.rabbitmq.client.ConnectionFactory
+import com.github.sstone.amqp.ProcessResult
+import com.github.sstone.amqp.Amqp.Publish
+import scala.util.Success
+import com.github.sstone.amqp.Amqp.ChannelParameters
+import scala.util.Failure
+import com.github.sstone.amqp.Amqp.QueueParameters
+import com.github.sstone.amqp.Amqp.Delivery
 
 object OneToAnyRpc extends App {
+  import ExecutionContext.Implicits.global
+
   // typical "work queue" pattern, where a job can be picked up by any running node
   implicit val system = ActorSystem("mySystem")
 
   // create an AMQP connection
-  val conn = new RabbitMQConnection(host = "localhost", name = "Connection")
+  val connFactory = new ConnectionFactory()
+  connFactory.setUri("amqp://guest:guest@localhost/%2F")
+  val conn = system.actorOf(ConnectionOwner.props(connFactory, 1 second))
 
   val queueParams = QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true)
 
@@ -32,10 +44,10 @@ object OneToAnyRpc extends App {
       }
       def onFailure(delivery: Delivery, e: Throwable) = ProcessResult(None) // we don't return anything
     }
-    conn.createRpcServer(StandardExchanges.amqDirect, queueParams, "my_key", processor, Some(ChannelParameters(qos = 1)))
+    ConnectionOwner.createChildActor(conn, RpcServer.props(queueParams, StandardExchanges.amqDirect,  "my_key", processor, ChannelParameters(qos = 1)))
   }
 
-  val rpcClient = conn.createRpcClient()
+  val rpcClient = ConnectionOwner.createChildActor(conn, RpcClient.props())
 
   // wait till everyone is actually connected to the broker
   Amqp.waitForConnection(system, rpcServers: _*).await()
@@ -47,12 +59,11 @@ object OneToAnyRpc extends App {
     val request = ("request " + i).getBytes
     val f = (rpcClient ? Request(List(Publish("amq.direct", "my_key", request)))).mapTo[RpcClient.Response]
     f.onComplete {
-      case Right(response) => println(new String(response.deliveries.head.body))
-      case Left(error) => println(error)
+      case Success(response) => println(new String(response.deliveries.head.body))
+      case Failure(error) => println(error)
     }
   }
   // wait 10 seconds and shut down
-  // run the Producer sample now and see what happens
   Thread.sleep(10000)
-  system.shutdown()
+  system.terminate()
 }

@@ -1,6 +1,10 @@
 # Simple Scala AMQP client
 
+Note: This project is undergoing heavy development as it pulls away from the fork of sstone/amqp-client. Unlike the corresponding break of akka-mq-proxies, we will retain its status as a direct fork until further notice.
+
 Simple [AMQP](http://www.amqp.org/) client in Scala/Akka based on the [RabbitMQ](http://www.rabbitmq.com/) java client.
+
+[![Build Status](https://travis-ci.org/sstone/amqp-client.png?branch=scala2.10)](https://travis-ci.org/sstone/amqp-client)
 
 ## Overview
 
@@ -12,7 +16,7 @@ This client provides a simple API for
 
 It is based on the [Akka](http://akka.io/) 2.0 framework.
 
-## Limitations and compatiblity issues
+## Limitations and compatibility issues
 
 * This client is compatible with AMQP 0.9.1, not AMQP 1.0.
 * This client is most probably not easily usable from Java
@@ -24,6 +28,9 @@ This very simple library is being used in production in a few projects now, eith
 So it kind of works and will be maintained for some time :-)
 
 ## Configuring maven/sbt
+
+* releases and milestones are pushed to maven central
+* snapshots are pushed to the sonatype snapshot repository
 
 ```xml
 <repositories>
@@ -37,30 +44,30 @@ So it kind of works and will be maintained for some time :-)
   <dependency>
     <groupId>com.github.sstone</groupId>
     <artifactId>amqp-client_SCALA-VERSION</artifactId>
-    <version>1.1</version>
+    <version>1.5</version>
   </dependency>
   <dependency>
     <groupId>com.typesafe.akka</groupId>
     <artifactId>akka-actor</artifactId> <!-- for Akka 2.0.X -->
-    <artifactId>akka-actor_SCALA-VERSION</artifactId> <!-- for Akka 2.1.X -->
+    <artifactId>akka-actor_SCALA-VERSION</artifactId> <!-- from Akka 2.1.X on -->
     <version>AKKA-VERSION</version>
   </dependency>
 </dependencies>
 ```
 
-Please note that the Akka dependency is now in the "provided" scope which means that you'll have to define it explicitely in your
+Please note that the Akka dependency is now in the "provided" scope which means that you'll have to define it explicitly in your
 maven/sbt projects. 
 
-The latest snapshot (development) version is 1.2-SNAPSHOT, the latest released version is 1.1. They are both compatible with
-Akka 2.1.0/Scala 2.10 and Akka 2.0.5/Scala 2.9.2
+The latest snapshot (development) version is 1.6-SNAPSHOT, the latest released version is 1.5
 
-Version 1.0 was packaged with groupdId set to com.aphelia and uploaded to my own mvn repository (http://sstone.github.com/sstone-mvn-repo/{snapshots/releases}).
-From version 1.1 on, snapshots are uploaded to https://oss.sonatype.org/content/repositories/snapshots and releases are synced to maven central.
-
-## Compatibility with Scala 2.10
-
-Master is currently developped against 2.9.2, branch scala2.10 against 2.10.0
-
+* amqp-client 1.0 is compatible with Scala 2.9.2 and Akka 2.0.3
+* amqp-client 1.1 is compatible with Scala 2.9.2 and Akka 2.0.5
+* amqp-client 1.1 is compatible with Scala 2.10.0 and Akka 2.1.0
+* amqp-client 1.2 is compatible with Scala 2.10 and Akka 2.1
+* amqp-client 1.3 is compatible with Scala 2.10 and Akka 2.2
+* amqp-client 1.4 is compatible with Scala 2.10, Scala 2.11 and Akka 2.3.2
+* amqp-client 1.5 is compatible with Scala 2.10, Scala 2.11 and Akka 2.3.11
+* amqp-client 1.6-SNAPSHOT is compatible with Scala 2.10, Scala 2.11 and Akka 2.4.3
 
 ## Library design
 
@@ -78,7 +85,7 @@ also [there](http://www.zeromq.org/whitepapers:amqp-analysis), and probably many
 * AMQP channels are multiplexed over AMQP connections. You use channels to publish and consume messages. Channels are managed
 by ChannelOwner objects.
 
-ConnectionOwner and ChannelOwner are implemened as Akka actors, using Akka supervision and the very useful Akka FSM:
+ConnectionOwner and ChannelOwner are implemened as Akka actors:
 * channel owners are created by connection owners
 * when a connection is lost, the connection owner will create a new connection and provide each of its children with a
 new channel
@@ -88,39 +95,68 @@ new channel
 
 YMMV, but using few connections (one per JVM) and many channels per connection (one per thread) is a common practice.
 
-### Basic usage
+### Wrapping the RabbitMQ client
 
-To create a connection, and a channel owner that you can use to publish message:
+As explained above, this is an actor-based wrapper around the RabbitMQ client, with 2 main classes: ConnectionOwner and
+ChannelOwner. Instead of calling the RabbitMQ [Channel](http://www.rabbitmq.com/releases/rabbitmq-java-client/v3.1.1/rabbitmq-java-client-javadoc-3.1.1/com/rabbitmq/client/Channel.html)
+interface, you send a message to a ChannelOwner actor, which replies with whatever the java client returned wrapped in an Amqp.Ok()
+message if the call was successful, or an Amqp.Error if it failed.
+
+For example, to declare a queue you could write:
 
 ``` scala
 
-  implicit val system = ActorSystem("mySystem")
+  val connFactory = new ConnectionFactory()
+  connFactory.setUri("amqp://guest:guest@localhost/%2F")
+  val conn = system.actorOf(ConnectionOwner.props(connFactory, 1 second))
+  val channel = ConnectionOwner.createChildActor(conn, ChannelOwner.props())
 
-  // create an AMQP connection
-  val conn = new RabbitMQConnection(host = "localhost", name = "Connection")
-
-  // create a "channel owner" on this connection
-  val producer = conn.createChannelOwner()
-
-  // wait till everyone is actually connected to the broker
-  Amqp.waitForConnection(system, producer).await()
-
-  // send a message
-  producer ! Publish("amq.direct", "my_key", "yo!!".getBytes, properties = None, mandatory = true, immediate = false)
+  channel ! DeclareQueue(QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true))
 
 ```
 
-To consume messages:
+Or, if you want to check the number of messages in a queue:
 
 ``` scala
-  implicit val system = ActorSystem("mySystem")
 
-  // create an AMQP connection
-  val conn = new RabbitMQConnection(host = "localhost", name = "Connection")
+  val connFactory = new ConnectionFactory()
+  connFactory.setUri("amqp://guest:guest@localhost/%2F")
+  val conn = system.actorOf(ConnectionOwner.props(connFactory, 1 second))
+  val channel = ConnectionOwner.createChildActor(conn, ChannelOwner.props())
+
+  val Amqp.Ok(_, Some(result: Queue.DeclareOk)) = Await.result(
+    (channel ? DeclareQueue(QueueParameters(name = "my_queue", passive = true))).mapTo[Amqp.Ok],
+    5 seconds
+  )
+  println("there are %d messages in the queue named %s".format(result.getMessageCount, result.getQueue))
+
+```
+
+### Initialization and failure handling
+
+If the connection to the broker is lost, ConnectionOwner actors will try and reconnect, and once they are connected
+again they will send a new AMQP channel to each of their ChannelOwner children.
+
+Likewise, if the channel owned by a ChannelOwner is shut down because of an error it will request a new one from its parent.
+
+In this case you might want to "replay" some of the messages that were sent to the ChannelOwner actor before it lost
+its channel, like queue declarations and bindings.
+
+For this, you have 2 options:
+* initialize the ChannelOwner with a list of requests
+* wrap requests inside a Record message
+
+Here, queues and bindings will be gone if the connection is lost and restored:
+
+``` scala
+
+  val connFactory = new ConnectionFactory()
+  connFactory.setUri("amqp://guest:guest@localhost/%2F")
+  val conn = system.actorOf(ConnectionOwner.props(connFactory, 1 second))
 
   // create an actor that will receive AMQP deliveries
   val listener = system.actorOf(Props(new Actor {
-    protected def receive = {
+    def receive = {
       case Delivery(consumerTag, envelope, properties, body) => {
         println("got a message: " + new String(body))
         sender ! Ack(envelope.getDeliveryTag)
@@ -129,14 +165,51 @@ To consume messages:
   }))
 
   // create a consumer that will route incoming AMQP messages to our listener
-  val queueParams = QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true)
-  val consumer = conn.createConsumer(Amqp.StandardExchanges.amqDirect, queueParams, "my_key", listener, None)
+  // it starts with an empty list of queues to consume from
+  val consumer = ConnectionOwner.createChildActor(conn, Consumer.props(listener, channelParams = None, autoack = false))
 
   // wait till everyone is actually connected to the broker
   Amqp.waitForConnection(system, consumer).await()
 
+  // create a queue, bind it to a routing key and consume from it
+  // here we don't wrap our requests inside a Record message, so they won't replayed when if the connection to
+  // the broker is lost: queue and binding will be gone
+
+  // create a queue
+  val queueParams = QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true)
+  consumer ! DeclareQueue(queueParams)
+  // bind it
+  consumer ! QueueBind(queue = "my_queue", exchange = "amq.direct", routing_key = "my_key")
+  // tell our consumer to consume from it
+  consumer ! AddQueue(QueueParameters(name = "my_queue", passive = false))
+
 ```
 
+We can initialize our consumer with a list of messages that will be replayed each time its receives a new channel:
+
+``` scala
+
+ val consumer = ConnectionOwner.createChildActor(conn, Consumer.props(
+    listener = Some(listener),
+    init = List(AddBinding(Binding(StandardExchanges.amqDirect, queueParams, "my_key")))
+  ), name = Some("consumer"))
+
+```
+
+Or can can wrap our initialization messages with Record to make sure they will be replayed each time its receives a new channel:
+
+``` scala
+
+  consumer ! Record(AddBinding(Binding(StandardExchanges.amqDirect, QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true), "my_key")))
+
+```
+
+If you have a reason to add a heartbeat (for instance, to keep your load balancer from dropping the connection), you can easily do so:
+
+``` scala
+  val connFactory = new ConnectionFactory()
+  connFactory.setRequestedHeartbeat(5) // seconds
+```
 
 ## RPC patterns
 
@@ -147,27 +220,22 @@ Typical RPC with AMQP follows this pattern:
 3.  server processes the message and replies to its 'replyTo' queue by publishing the response to the default exchange using the queue name as routing key (all queues are bound to their name
 on the default exchange)
 
-Usually, you would set up several RPC servers which all use the same shared queue. The broker will load-balance messsages
-between these consumers using round-robin distribution, which can be combined with 'prefetch' channel settings.
+### Distributed Worker Pattern
+
+This is one of the simplest but most useful pattern: using a shared queue to distributed work among consumers.
+The broker will load-balance messages between these consumers using round-robin distribution, which can be combined with 'prefetch' channel settings.
 Setting 'prefetch' to 1 is very useful if you need resource-based (CPU, ...) load-balancing.
-
-But you can also extend this pattern by setting up RPC servers which all use private exclusive queues
-bound to the same key. In this case, each server will receive the same request and will send back a response.
-This is very useful if you want to break a single operation into multiple, parallel steps.
-For example, if you want to decrypt things, you could divide the key space into N parts, set up one
-RPC server for each part, publish a single RPC request and wait for N responses.
-
-This could be further extended with a simple 'workflow' pattern where each server publishes its results
-to the shared queue used by the next step.
-For example, if you want to chain steps A, B and C, set up a shared queue for each step, have 'A' processors
-publish to queue 'B', 'B' processors publish to queue 'C' ....
+You will typically use explicit acknowledgments and ack messages once they have been processed and the response has been sent. This
+way, if your consumer fails to process the request or is disconnected, the broker will re-send the same request to another consumer.
 
 ``` scala
   // typical "work queue" pattern, where a job can be picked up by any running node
   implicit val system = ActorSystem("mySystem")
 
   // create an AMQP connection
-  val conn = new RabbitMQConnection(host = "localhost", name = "Connection")
+  val connFactory = new ConnectionFactory()
+  connFactory.setUri("amqp://guest:guest@localhost/%2F")
+  val conn = system.actorOf(ConnectionOwner.props(connFactory, 1 second))
 
   val queueParams = QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true)
 
@@ -184,10 +252,10 @@ publish to queue 'B', 'B' processors publish to queue 'C' ....
       }
       def onFailure(delivery: Delivery, e: Throwable) = ProcessResult(None) // we don't return anything
     }
-    conn.createRpcServer(StandardExchanges.amqDirect, queueParams, "my_key", processor, Some(ChannelParameters(qos = 1)))
+    ConnectionOwner.createChildActor(conn, RpcServer.props(queueParams, StandardExchanges.amqDirect,  "my_key", processor, ChannelParameters(qos = 1)))
   }
 
-  val rpcClient = conn.createRpcClient()
+  val rpcClient = ConnectionOwner.createChildActor(conn, RpcClient.props())
 
   // wait till everyone is actually connected to the broker
   Amqp.waitForConnection(system, rpcServers: _*).await()
@@ -199,16 +267,23 @@ publish to queue 'B', 'B' processors publish to queue 'C' ....
     val request = ("request " + i).getBytes
     val f = (rpcClient ? Request(List(Publish("amq.direct", "my_key", request)))).mapTo[RpcClient.Response]
     f.onComplete {
-      case Right(response) => println(new String(response.deliveries.head.body))
-      case Left(error) => println(error)
+      case Success(response) => println(new String(response.deliveries.head.body))
+      case Failure(error) => println(error)
     }
   }
   // wait 10 seconds and shut down
-  // run the Producer sample now and see what happens
   Thread.sleep(10000)
   system.shutdown()
 
 ```
+
+### One request/several responses
+
+If your process is "sharded" and one request should result in several responses (one per shard for example) you can
+use private exclusive queues which are all bound to the same key. In this case, each server will receive the same request and
+will send back a response.
+
+This is very useful if you want to break a single operation into multiple, parallel steps.
 
 ``` scala
 
@@ -216,7 +291,9 @@ publish to queue 'B', 'B' processors publish to queue 'C' ....
   implicit val system = ActorSystem("mySystem")
 
   // create an AMQP connection
-  val conn = new RabbitMQConnection(host = "localhost", name = "Connection")
+  val connFactory = new ConnectionFactory()
+  connFactory.setUri("amqp://guest:guest@localhost/%2F")
+  val conn = system.actorOf(ConnectionOwner.props(connFactory, 1 second))
 
   // typical "reply queue"; the name if left empty: the broker will generate a new random name
   val privateReplyQueue = QueueParameters("", passive = false, durable = false, exclusive = true, autodelete = true)
@@ -237,10 +314,10 @@ publish to queue 'B', 'B' processors publish to queue 'C' ....
       }
       def onFailure(delivery: Delivery, e: Throwable) = ProcessResult(None) // we don't return anything
     }
-    conn.createRpcServer(StandardExchanges.amqDirect, privateReplyQueue, "my_key", processor, Some(ChannelParameters(qos = 1)))
+    ConnectionOwner.createChildActor(conn, RpcServer.props(privateReplyQueue, StandardExchanges.amqDirect,  "my_key", processor, ChannelParameters(qos = 1)))
   }
 
-  val rpcClient = conn.createRpcClient()
+  val rpcClient = ConnectionOwner.createChildActor(conn, RpcClient.props())
 
   // wait till everyone is actually connected to the broker
   Amqp.waitForConnection(system, rpcServers: _*).await()
@@ -252,24 +329,30 @@ publish to queue 'B', 'B' processors publish to queue 'C' ....
     val request = ("request " + i).getBytes
     val f = (rpcClient ? Request(List(Publish("amq.direct", "my_key", request)), 3)).mapTo[RpcClient.Response]
     f.onComplete {
-      case Right(response) => {
+      case Success(response) => {
         response.deliveries.foreach(delivery => println(new String(delivery.body)))
       }
-      case Left(error) => println(error)
+      case Failure(error) => println(error)
     }
   }
   // wait 10 seconds and shut down
-  // run the Producer sample now and see what happens
   Thread.sleep(10000)
   system.shutdown()
 
 ```
 
+### Workflow Pattern
+
+This could be further extended with a simple 'workflow' pattern where each server publishes its results
+to the shared queue used by the next step.
+For example, if you want to chain steps A, B and C, set up a shared queue for each step, have 'A' processors
+publish to queue 'B', 'B' processors publish to queue 'C' ....
+
 
 ## Samples
 
-Please check ChannelOwnerSpec.scala in [src/test/scala/com/aphelia/amqp/ChannelOwnerSpec.scala](http://github.com/sstone/amqp-client/blob/master/src/test/scala/com/aphelia/amqp/ChannelOwnerSpec.scala) for
-more comprehensive samples
+You can check either samples [src/main/scala/com/github/sstone/amqp/samples](https://github.com/sstone/amqp-client/tree/scala2.11/src/main/scala/com/github/sstone/amqp/samples) or spec tests [src/test/scala/com/github/sstone/amqp](https://github.com/sstone/amqp-client/tree/scala2.11/src/test/scala/com/github/sstone/amqp) for examples of how to use the library.
+
 
 
 
