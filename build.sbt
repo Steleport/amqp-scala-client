@@ -12,6 +12,8 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 
 scalacOptions  ++= Seq("-unchecked", "-deprecation")
 
+credentials += Credentials(Path.userHome / ".ivy2" / ".spacelift-credentials")
+
 useGpg := true
 
 usePgpKeyHex("0B09B8CCD3E1A62F")
