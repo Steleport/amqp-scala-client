@@ -2,7 +2,7 @@ name := "amqp-scala-client"
 
 organization := "space.spacelift"
  
-version := "2.0-SNAPSHOT"
+version := "2.0.0-SNAPSHOT"
  
 scalaVersion := "2.12.1"
 
@@ -11,6 +11,46 @@ scalacOptions  ++= Seq("-feature", "-language:postfixOps")
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
 scalacOptions  ++= Seq("-unchecked", "-deprecation")
+
+useGpg := true
+
+usePgpKeyHex("0B09B8CCD3E1A62F")
+
+publishMavenStyle := true
+
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+}
+
+publishArtifact in Test := false
+
+pomIncludeRepository := { _ => false }
+
+pomExtra := (
+  <url>http://spacelift.space</url>
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>https://github.com/spacelift/amqp-scala-client</url>
+    <connection>scm:git:git@github.com:spacelift/amqp-scala-client.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>drheart</id>
+      <name>Dustin R. Heart</name>
+      <url>http://spacelift.space</url>
+    </developer>
+  </developers>)
+
 
 libraryDependencies <<= scalaVersion { scala_version => 
     val akkaVersion   = "2.4.16"

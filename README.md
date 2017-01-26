@@ -21,34 +21,19 @@ I also am rearranging the project somewhat, moving out sample code from the actu
 * License, and original copyright attribution, as Fabrice Drouin's (sstone) hard work will still be at the heart of this project to a healthy degree. Were this a complete rewrite, this wouldn't have been a fork in the first place.
 * Expected behavior of the Consumer, ChannelOwner and ConnectionOwner classes, and their supporting case classes in the Amqp object.
 
-The remainder of the old amqp-client is preserved below until a final 2.0 release.
-
-* * *
-
-Simple [AMQP](http://www.amqp.org/) client in Scala/Akka based on the [RabbitMQ](http://www.rabbitmq.com/) java client.
-
-[![Build Status](https://travis-ci.org/sstone/amqp-client.png?branch=scala2.10)](https://travis-ci.org/sstone/amqp-client)
-
 ## Overview
 
 This client provides a simple API for
 
 * publishing and consuming messages over AMQP
-* setting up RPC clients and servers
 * automatic reconnection
 
-It is based on the [Akka](http://akka.io/) 2.0 framework.
+It is based on the [Akka](http://akka.io/) 2.4 framework.
 
 ## Limitations and compatibility issues
 
 * This client is compatible with AMQP 0.9.1, not AMQP 1.0.
 * This client is most probably not easily usable from Java
-
-## "Production" status
-
-This very simple library is being used in production in a few projects now, either directly or through the
-[Akka AMQP Proxies pattern](https://github.com/sstone/akka-amqp-proxies), and so far so good....
-So it kind of works and will be maintained for some time :-)
 
 ## Configuring maven/sbt
 
@@ -65,14 +50,13 @@ So it kind of works and will be maintained for some time :-)
 
 <dependencies>
   <dependency>
-    <groupId>com.github.sstone</groupId>
-    <artifactId>amqp-client_SCALA-VERSION</artifactId>
-    <version>1.5</version>
+    <groupId>space.spacelift</groupId>
+    <artifactId>amqp-scala-client_SCALA-VERSION</artifactId>
+    <version>2.0.0</version>
   </dependency>
   <dependency>
     <groupId>com.typesafe.akka</groupId>
-    <artifactId>akka-actor</artifactId> <!-- for Akka 2.0.X -->
-    <artifactId>akka-actor_SCALA-VERSION</artifactId> <!-- from Akka 2.1.X on -->
+    <artifactId>akka-actor_SCALA-VERSION</artifactId>
     <version>AKKA-VERSION</version>
   </dependency>
 </dependencies>
@@ -81,16 +65,9 @@ So it kind of works and will be maintained for some time :-)
 Please note that the Akka dependency is now in the "provided" scope which means that you'll have to define it explicitly in your
 maven/sbt projects. 
 
-The latest snapshot (development) version is 1.6-SNAPSHOT, the latest released version is 1.5
+The latest snapshot (development) version is 2.0.0-SNAPSHOT, the latest released version is 2.0.0
 
-* amqp-client 1.0 is compatible with Scala 2.9.2 and Akka 2.0.3
-* amqp-client 1.1 is compatible with Scala 2.9.2 and Akka 2.0.5
-* amqp-client 1.1 is compatible with Scala 2.10.0 and Akka 2.1.0
-* amqp-client 1.2 is compatible with Scala 2.10 and Akka 2.1
-* amqp-client 1.3 is compatible with Scala 2.10 and Akka 2.2
-* amqp-client 1.4 is compatible with Scala 2.10, Scala 2.11 and Akka 2.3.2
-* amqp-client 1.5 is compatible with Scala 2.10, Scala 2.11 and Akka 2.3.11
-* amqp-client 1.6-SNAPSHOT is compatible with Scala 2.10, Scala 2.11 and Akka 2.4.3
+* amqp-client 2.0-SNAPSHOT is compatible with Scala 2.12 and Akka 2.4.16
 
 ## Library design
 
@@ -234,147 +211,9 @@ If you have a reason to add a heartbeat (for instance, to keep your load balance
   connFactory.setRequestedHeartbeat(5) // seconds
 ```
 
-## RPC patterns
-
-Typical RPC with AMQP follows this pattern:
-
-1.  client sets up a private, exclusive response queue
-2.  client sends message and set their 'replyTo' property to the name of this response queue
-3.  server processes the message and replies to its 'replyTo' queue by publishing the response to the default exchange using the queue name as routing key (all queues are bound to their name
-on the default exchange)
-
-### Distributed Worker Pattern
-
-This is one of the simplest but most useful pattern: using a shared queue to distributed work among consumers.
-The broker will load-balance messages between these consumers using round-robin distribution, which can be combined with 'prefetch' channel settings.
-Setting 'prefetch' to 1 is very useful if you need resource-based (CPU, ...) load-balancing.
-You will typically use explicit acknowledgments and ack messages once they have been processed and the response has been sent. This
-way, if your consumer fails to process the request or is disconnected, the broker will re-send the same request to another consumer.
-
-``` scala
-  // typical "work queue" pattern, where a job can be picked up by any running node
-  implicit val system = ActorSystem("mySystem")
-
-  // create an AMQP connection
-  val connFactory = new ConnectionFactory()
-  connFactory.setUri("amqp://guest:guest@localhost/%2F")
-  val conn = system.actorOf(ConnectionOwner.props(connFactory, 1 second))
-
-  val queueParams = QueueParameters("my_queue", passive = false, durable = false, exclusive = false, autodelete = true)
-
-  // create 2 equivalent servers
-  val rpcServers = for (i <- 1 to 2) yield {
-    // create a "processor"
-    // in real life you would use a serialization framework (json, protobuf, ....), define command messages, etc...
-    // check the Akka AMQP proxies project for examples
-    val processor = new IProcessor {
-      def process(delivery: Delivery) = {
-        // assume that the message body is a string
-        val response = "response to " + new String(delivery.body)
-        Future(ProcessResult(Some(response.getBytes)))
-      }
-      def onFailure(delivery: Delivery, e: Throwable) = ProcessResult(None) // we don't return anything
-    }
-    ConnectionOwner.createChildActor(conn, RpcServer.props(queueParams, StandardExchanges.amqDirect,  "my_key", processor, ChannelParameters(qos = 1)))
-  }
-
-  val rpcClient = ConnectionOwner.createChildActor(conn, RpcClient.props())
-
-  // wait till everyone is actually connected to the broker
-  Amqp.waitForConnection(system, rpcServers: _*).await()
-  Amqp.waitForConnection(system, rpcClient).await()
-
-  implicit val timeout: Timeout = 2 seconds
-
-  for (i <- 0 to 5) {
-    val request = ("request " + i).getBytes
-    val f = (rpcClient ? Request(List(Publish("amq.direct", "my_key", request)))).mapTo[RpcClient.Response]
-    f.onComplete {
-      case Success(response) => println(new String(response.deliveries.head.body))
-      case Failure(error) => println(error)
-    }
-  }
-  // wait 10 seconds and shut down
-  Thread.sleep(10000)
-  system.shutdown()
-
-```
-
-### One request/several responses
-
-If your process is "sharded" and one request should result in several responses (one per shard for example) you can
-use private exclusive queues which are all bound to the same key. In this case, each server will receive the same request and
-will send back a response.
-
-This is very useful if you want to break a single operation into multiple, parallel steps.
-
-``` scala
-
-  // one request/several responses pattern
-  implicit val system = ActorSystem("mySystem")
-
-  // create an AMQP connection
-  val connFactory = new ConnectionFactory()
-  connFactory.setUri("amqp://guest:guest@localhost/%2F")
-  val conn = system.actorOf(ConnectionOwner.props(connFactory, 1 second))
-
-  // typical "reply queue"; the name if left empty: the broker will generate a new random name
-  val privateReplyQueue = QueueParameters("", passive = false, durable = false, exclusive = true, autodelete = true)
-
-  // we have a problem that can be "sharded", we create one server per shard, and for each request we expect one
-  // response from each shard
-
-  // create one server per shard
-  val rpcServers = for (i <- 0 to 2) yield {
-    // create a "processor"
-    // in real life you would use a serialization framework (json, protobuf, ....), define command messages, etc...
-    // check the Akka AMQP proxies project for examples
-    val processor = new IProcessor {
-      def process(delivery: Delivery) = {
-        // assume that the message body is a string
-        val response = "response to " + new String(delivery.body) + " from shard " + i
-        Future(ProcessResult(Some(response.getBytes)))
-      }
-      def onFailure(delivery: Delivery, e: Throwable) = ProcessResult(None) // we don't return anything
-    }
-    ConnectionOwner.createChildActor(conn, RpcServer.props(privateReplyQueue, StandardExchanges.amqDirect,  "my_key", processor, ChannelParameters(qos = 1)))
-  }
-
-  val rpcClient = ConnectionOwner.createChildActor(conn, RpcClient.props())
-
-  // wait till everyone is actually connected to the broker
-  Amqp.waitForConnection(system, rpcServers: _*).await()
-  Amqp.waitForConnection(system, rpcClient).await()
-
-  implicit val timeout: Timeout = 2 seconds
-
-  for (i <- 0 to 5) {
-    val request = ("request " + i).getBytes
-    val f = (rpcClient ? Request(List(Publish("amq.direct", "my_key", request)), 3)).mapTo[RpcClient.Response]
-    f.onComplete {
-      case Success(response) => {
-        response.deliveries.foreach(delivery => println(new String(delivery.body)))
-      }
-      case Failure(error) => println(error)
-    }
-  }
-  // wait 10 seconds and shut down
-  Thread.sleep(10000)
-  system.shutdown()
-
-```
-
-### Workflow Pattern
-
-This could be further extended with a simple 'workflow' pattern where each server publishes its results
-to the shared queue used by the next step.
-For example, if you want to chain steps A, B and C, set up a shared queue for each step, have 'A' processors
-publish to queue 'B', 'B' processors publish to queue 'C' ....
-
-
 ## Samples
 
-You can check either samples [src/main/scala/com/github/sstone/amqp/samples](https://github.com/sstone/amqp-client/tree/scala2.11/src/main/scala/com/github/sstone/amqp/samples) or spec tests [src/test/scala/com/github/sstone/amqp](https://github.com/sstone/amqp-client/tree/scala2.11/src/test/scala/com/github/sstone/amqp) for examples of how to use the library.
+You can check either samples [src/samples/scala](https://github.com/spacelift/amqp-scala-client/tree/develop/src/samples/scala/) or spec tests [src/test/scala/space/spacelift/amqp](https://github.com/spacelift/amqp-scala-client/tree/develop/src/test/scala/space/spacelift/amqp) for examples of how to use the library.
 
 
 
