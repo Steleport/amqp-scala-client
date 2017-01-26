@@ -15,7 +15,6 @@ I also am rearranging the project somewhat, moving out sample code from the actu
 ## What Specifically Will Change?
 
 * All RPC code (RPCServer/RPCClient/IProcessor) will move to Akka-MQ-Proxies (in progress, but already removed from this project)
-* A base interface project will be created to accompany this one in anticipation of its use case in Akka-MQ-Proxies 
 
 ## What Won't Change?
 
