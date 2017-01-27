@@ -2,7 +2,7 @@ name := "amqp-scala-client"
 
 organization := "space.spacelift"
  
-version := "2.0.0-SNAPSHOT"
+version := "2.0.0"
  
 scalaVersion := "2.12.1"
 
