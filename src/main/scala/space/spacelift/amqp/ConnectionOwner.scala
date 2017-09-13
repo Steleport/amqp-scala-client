@@ -5,10 +5,12 @@ import akka.actor._
 import akka.event.LoggingReceive
 import akka.pattern.ask
 import akka.util.Timeout
-import com.rabbitmq.client.{Connection, ShutdownSignalException, ShutdownListener, ConnectionFactory, Address => RMQAddress}
+import com.rabbitmq.client.{Connection, ConnectionFactory, DefaultSaslConfig, ShutdownListener, ShutdownSignalException, Address => RMQAddress}
+
 import scala.concurrent.Await
 import concurrent.duration._
 import java.util.concurrent.ExecutorService
+
 import scala.util.{Failure, Success, Try}
 
 object ConnectionOwner {

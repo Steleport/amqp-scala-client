@@ -2,7 +2,7 @@ name := "amqp-scala-client"
 
 organization := "space.spacelift"
  
-version := "2.0.1-SNAPSHOT"
+version := "2.1.0-SNAPSHOT"
  
 scalaVersion := "2.12.1"
 
@@ -57,7 +57,7 @@ pomExtra := (
 
 
 libraryDependencies <<= scalaVersion { scala_version => 
-    val akkaVersion   = "2.4.16"
+    val akkaVersion   = "2.5.0"
     Seq(
         "com.rabbitmq"         % "amqp-client"          % "4.0.2",
         "com.typesafe.akka"    %% "akka-actor"          % akkaVersion % "provided",
