@@ -14,10 +14,10 @@ object Amqp {
    * @param passive if true, just check that que queue exists
    * @param durable if true, the queue will be durable i.e. will survive a broker restart
    * @param exclusive if true, the queue can be used by one connection only
-   * @param autodelete if true, the queue will be destroyed when it is no longer used
+   * @param autoDelete if true, the queue will be destroyed when it is no longer used
    * @param args additional parameters, such as TTL, ...
    */
-  case class QueueParameters(name: String, passive: Boolean, durable: Boolean = false, exclusive: Boolean = false, autodelete: Boolean = true, args: Map[String, AnyRef] = Map.empty)
+  case class QueueParameters(name: String, passive: Boolean, durable: Boolean = false, exclusive: Boolean = false, autoDelete: Boolean = true, args: Map[String, AnyRef] = Map.empty)
 
   /**
    * declare a queue
@@ -29,7 +29,7 @@ object Amqp {
     if (q.passive)
       channel.queueDeclarePassive(q.name)
     else
-      channel.queueDeclare(q.name, q.durable, q.exclusive, q.autodelete, q.args)
+      channel.queueDeclare(q.name, q.durable, q.exclusive, q.autoDelete, q.args)
   }
 
   /**
@@ -41,7 +41,7 @@ object Amqp {
    * @param autodelete if true, the exchange will be destroyed when it is no longer used
    * @param args additional arguments
    */
-  case class ExchangeParameters(name: String, passive: Boolean, exchangeType: String, durable: Boolean = false, autodelete: Boolean = false, args: Map[String, AnyRef] = Map.empty)
+  case class ExchangeParameters(name: String, passive: Boolean, exchangeType: String, durable: Boolean = false, autoDelete: Boolean = false, args: Map[String, AnyRef] = Map.empty)
 
   /**
    * declare an exchange
@@ -53,7 +53,7 @@ object Amqp {
     if (e.passive)
       channel.exchangeDeclarePassive(e.name)
     else
-      channel.exchangeDeclare(e.name, e.exchangeType, e.durable, e.autodelete, e.args)
+      channel.exchangeDeclare(e.name, e.exchangeType, e.durable, e.autoDelete, e.args)
   }
 
   object StandardExchanges {
